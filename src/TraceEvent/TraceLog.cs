@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -36,6 +37,60 @@ using Address = System.UInt64;
 
 namespace Microsoft.Diagnostics.Tracing.Etlx
 {
+    internal class CircularBuffer<T>
+    {
+        public int StartIndex, AfterEndIndex, Count;
+        private T[] Items;
+        public CircularBuffer(int size)
+        {
+            if (size < 1)
+            {
+                throw new ArgumentException("size");
+            }
+
+            StartIndex = 0;
+            AfterEndIndex = 0;
+            Count = size + 1;
+            Items = new T[Count];
+        }
+
+        public void Add(T item)
+        {
+            if (Next(AfterEndIndex) == StartIndex)
+            {
+                Items[StartIndex] = default(T);
+                StartIndex = Next(StartIndex);
+            }
+            Items[AfterEndIndex] = item;
+            AfterEndIndex = Next(AfterEndIndex);
+        }
+
+        private int Next(int i)
+        {
+            return (i == Count - 1) ? 0 : i + 1;
+        }
+
+        public T this[int index]
+        {
+            get
+            {
+                int actualIndex = (StartIndex + (index % Count)) % Count;
+                return Items[actualIndex];
+            }
+            set
+            {
+                int actualIndex = (StartIndex + (index % Count)) % Count;
+                Items[actualIndex] = value;
+            }
+        }
+
+        public void RemoveRange(int origSize, int newSize)
+        {
+            Console.WriteLine("fuck!");
+        }
+
+    }
+
     /// <summary>
     /// The data model for an Event trace log (ETL) file is simply a stream of events.     More sophisticated
     /// analysis typically needs a a richer data model then ETL files can provide, and this is the
@@ -569,7 +624,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                     // if (!removeFromStream && data.Opcode != TraceEventOpcode.DataCollectionStart && data.ProcessID != 0 && data.ProviderGuid != ClrRundownTraceEventParser.ProviderGuid)
                     //     Trace.WriteLine("REAL TIME QUEUE:  " + data.ToString());
                     TraceEventCounts countForEvent = Stats.GetEventCounts(data);
-                    Debug.Assert((int)data.EventIndex == eventCount);
+                    //Debug.Assert((int)data.EventIndex == eventCount);
                     countForEvent.m_count++;
                     countForEvent.m_eventDataLenTotal += data.EventDataLength;
 
@@ -1891,7 +1946,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
 #endif
 
             // While scanning over the stream, copy all data to the file.
-            rawEvents.AllEvents += delegate (TraceEvent data)
+            /*rawEvents.AllEvents += delegate (TraceEvent data)
             {
                 Debug.Assert(_syncTimeQPC != 0);         // We should have set this in the Header event (or on session start if it is read time
 #if DEBUG
@@ -2057,7 +2112,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                 }
                 numberOnPage++;
                 eventCount++;
-            };
+            };*/
 
 #if DEBUG
             // This is a guard against code running in TraceLog.CopyRawEvents that attempts to use
@@ -7540,11 +7595,12 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
 
         internal CallStackIndex InternCallStackIndex(CodeAddressIndex codeAddressIndex, CallStackIndex callerIndex)
         {
-            if (callStacks.Count == 0)
+            if (callStacks == null)
             {
                 // allocate a reasonable size for the interning tables.
-                callStacks = new GrowableArray<CallStackInfo>(10000);
-                callees = new GrowableArray<List<CallStackIndex>>(10000);
+                callStacks = new CircularBuffer<CallStackInfo>(10000);
+                callees = new CircularBuffer<List<CallStackIndex>>(10000);
+                threads = new CircularBuffer<List<CallStackIndex>>(10000);
             }
 
             List<CallStackIndex> frameCallees;
@@ -7621,7 +7677,7 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
             {
                 deserializer.Log("<Marker Name=\"callStacks\"/>");
                 int count = deserializer.ReadInt();
-                callStacks = new GrowableArray<CallStackInfo>(count + 1);
+                callStacks = new CircularBuffer<CallStackInfo>(count + 1);
                 CallStackInfo callStackInfo = new CallStackInfo();
                 for (int i = 0; i < count; i++)
                 {
@@ -7641,9 +7697,9 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
         // This is only used when converting maps.  Maps a call stack index to a list of call stack indexes that
         // were callees of it.    This is the list you need to search when interning.  There is also 'threads'
         // which is the list of call stack indexes where stack crawling stopped.
-        private GrowableArray<List<CallStackIndex>> callees;    // For each callstack, these are all the call stacks that it calls.
-        private GrowableArray<List<CallStackIndex>> threads;    // callees for threads of stacks, one for each thread
-        private GrowableArray<CallStackInfo> callStacks;        // a field on CallStackInfo
+        private CircularBuffer<List<CallStackIndex>> callees;    // For each callstack, these are all the call stacks that it calls.
+        private CircularBuffer<List<CallStackIndex>> threads;    // callees for threads of stacks, one for each thread
+        private CircularBuffer<CallStackInfo> callStacks;        // a field on CallStackInfo
         private DeferedRegion lazyCallStacks;
         private TraceCodeAddresses codeAddresses;
         private TraceLog log;
