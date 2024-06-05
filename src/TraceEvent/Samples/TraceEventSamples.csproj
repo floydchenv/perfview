@@ -9,13 +9,13 @@
     <Product>TraceEvent Samples</Product>
     <Description>A set of samples for the Microsoft.Diagnostics.Tracinging.TraceEvent library</Description>
     <Copyright>Copyright © Microsoft 2018</Copyright>
+    <StartupObject>Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.7" />
     <PackageReference Include="System.Reactive.Linq" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Reflection.Metadata" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

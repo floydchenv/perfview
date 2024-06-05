@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TraceEventSamples", "TraceEventSamples.csproj", "{FD506D45-30DA-431D-B015-53721B284EDD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD506D45-30DA-431D-B015-53721B284EDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD506D45-30DA-431D-B015-53721B284EDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD506D45-30DA-431D-B015-53721B284EDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD506D45-30DA-431D-B015-53721B284EDD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0D677152-0E0D-4363-BF88-B767DCE4A3EB}
+	EndGlobalSection
+EndGlobal
