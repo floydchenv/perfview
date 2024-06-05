@@ -12,8 +12,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Timers;
@@ -46,6 +44,11 @@ namespace TraceEventSamples
         public ushort CPUId { get; set; }
         public List<ushort> ModuleIndexs = new List<ushort>(); 
         public List<UInt64> Addresses = new List<UInt64>();
+
+        public override string ToString()
+        {
+            return $"Time:{Timestamp}, Count:{Addresses.Count}";
+        }
     }
     
     //单个Event和FrameId的对照关系
@@ -82,6 +85,14 @@ namespace TraceEventSamples
         {
             CurrentIndex = (CurrentIndex + 1) % Buffer.Length;
             return Buffer[CurrentIndex];
+        }
+
+        public void Dispose()
+        {
+            Buffer = null;
+            GC.Collect();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         // 获取指定 FrameId 前后的事件
@@ -163,7 +174,7 @@ namespace TraceEventSamples
             TraceCallStack callStack = data.CallStack();
             if (callStack != null)
             {
-                Out.WriteLine(callStack.ToString());
+                //Out.WriteLine(callStack.ToString());
 
                 EventStackInfo stackInfo = EventStackBuffers.PopEventStack();
 
@@ -187,21 +198,33 @@ namespace TraceEventSamples
 
                     cur = cur.Caller;
                 }
+                //Console.WriteLine(stackInfo.ToString());
             }
         }
+
+        static Action<SampledProfileTraceData> perfInfoSampleHandler = data => ProcessEvent(data);
+        static Action<CSwitchTraceData> threadCSwitchHandler = data => ProcessEvent(data);
 
         public static void Run()
         {
             // Set up Ctrl-C to stop both user mode and kernel mode sessions
             Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs cancelArgs) =>
             {
+                // 移除委托
+                traceLogSource.Kernel.PerfInfoSample -= perfInfoSampleHandler;
+                traceLogSource.Kernel.ThreadCSwitch -= threadCSwitchHandler;
                 if (session != null)
                 {
                     session.Dispose();
+                    traceLogSource.Dispose();
                 }
 
+                GC.Collect();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
                 cancelArgs.Cancel = true;
                 Out.WriteLine("Finished");
+                Console.ReadLine();
             };
 
             using (session = new TraceEventSession("TraceLogSession"))
@@ -228,7 +251,8 @@ namespace TraceEventSamples
                 using (traceLogSource = TraceLog.CreateFromTraceEventSession(session))
                 {
 
-                    traceLogSource.Kernel.PerfInfoSample += ((SampledProfileTraceData data) => ProcessEvent(data, symbolReader));
+                    traceLogSource.Kernel.PerfInfoSample += perfInfoSampleHandler;
+                    traceLogSource.Kernel.ThreadCSwitch += threadCSwitchHandler;
                     traceLogSource.Process();
                 }
             }
@@ -237,13 +261,13 @@ namespace TraceEventSamples
 
         public static void StartCapture()
         {
-            traceLogSource.Kernel.PerfInfoSample += ((SampledProfileTraceData data) => ProcessEvent(data, symbolReader));
+            traceLogSource.Kernel.PerfInfoSample += ((SampledProfileTraceData data) => ProcessEvent(data));
 
         }
 
         public static void StopCapture()
         {
-            traceLogSource.Kernel.PerfInfoSample -= ((SampledProfileTraceData data) => ProcessEvent(data, symbolReader));
+            traceLogSource.Kernel.PerfInfoSample -= ((SampledProfileTraceData data) => ProcessEvent(data));
         }
 
         public static void ReleaseResource()
@@ -269,12 +293,12 @@ namespace TraceEventSamples
 
         }
 
-        private static void ProcessEvent(TraceEvent data, SymbolReader symbolReader)
+        private static void ProcessEvent(TraceEvent data)
         {
             //46 : "Sample"
             if ((Int32)data.Opcode != 46)
             {
-                return;
+                //return;
             }
 
             if (!data.ProcessName.Contains("DFMClient"))

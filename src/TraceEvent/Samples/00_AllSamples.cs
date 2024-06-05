@@ -55,6 +55,7 @@ namespace TraceEventSamples
             //KernelAndClrFileWin7.Run(); Debugger.Break();
             //SimpleTraceLog.Run(); Debugger.Break();
             TraceLogMonitor.Run(); Debugger.Break();
+            Console.ReadLine();
             //SimpleFileRelogger.Run(); Debugger.Break();
             //SimpleMonitorRelogger.Run(); Debugger.Break();
             Console.WriteLine("Done with samples");
